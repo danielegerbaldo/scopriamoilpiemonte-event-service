@@ -1,33 +1,17 @@
 package TAASS.ServiceDBEventi;
 
+import TAASS.ServiceDBEventi.classiComode.IscriviEvento;
 import TAASS.ServiceDBEventi.controllers.EventoController;
-import TAASS.ServiceDBEventi.controllers.TipoEventoController;
 import TAASS.ServiceDBEventi.models.Evento;
-import TAASS.ServiceDBEventi.models.IscrittiEvento;
+//import TAASS.ServiceDBEventi.models.IscrittiEvento;
 import TAASS.ServiceDBEventi.models.TipoEvento;
-import TAASS.ServiceDBEventi.repositories.EventoRepository;
-import TAASS.ServiceDBEventi.repositories.IscrittiEventoRepository;
 import TAASS.ServiceDBEventi.repositories.TipoEventoRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import net.minidev.json.parser.JSONParser;
-import org.aspectj.lang.annotation.Before;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.util.Assert;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.context.WebApplicationContext;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -54,8 +38,8 @@ public class TestGestioneEventi {
         headers.setContentType(MediaType.APPLICATION_JSON);
         TipoEvento tipo = getTipoProva();
         URI uri = new URI("http://localhost:8080/api/v1/evento");
-        Evento evento = new Evento("prova2", 10, 1, false,
-                "evento di prova", "prova", tipo, null, 1, 2);
+        Evento evento = new Evento("prov12", 10, 1, false,
+                "evento di prova", "prova", tipo, null, 1, 1);
         HttpEntity<Evento> httpEntity = new HttpEntity<>(evento, headers);
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Evento> responseEntity = restTemplate.exchange(uri, HttpMethod.POST, httpEntity,
@@ -67,7 +51,7 @@ public class TestGestioneEventi {
 
     public TipoEvento getTipoProva() throws URISyntaxException {
         TipoEvento tipo = null;
-        URI uri = new URI("http://localhost:8080/api/v1/tipo-evento/getById/7");
+        URI uri = new URI("http://localhost:8080/api/v1/tipo-evento/getById/10");
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<TipoEvento> httpEntity = new HttpEntity<>(headers);
@@ -76,6 +60,37 @@ public class TestGestioneEventi {
                 TipoEvento.class);
         tipo = responseEntity.getBody();
         return tipo;
+    }
+
+    @Test
+    public void iscriviEvento()throws URISyntaxException {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        URI uri = new URI("http://localhost:8080/api/v1/evento/iscrivi");
+        Evento evento = getEventoByID();
+        System.out.println("evento = " + evento.getId());
+        long utente = 2;
+        IscriviEvento iscriviEvento = new IscriviEvento(evento, utente);
+        HttpEntity<IscriviEvento> httpEntity = new HttpEntity<>(iscriviEvento, headers);
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<Evento> responseEntity = restTemplate.exchange(uri, HttpMethod.POST, httpEntity,
+                Evento.class);
+        System.out.println("Status Code: " + responseEntity.getStatusCode());
+        //System.out.println(responseEntity.getBody().toString());
+    }
+
+    private Evento getEventoByID() throws URISyntaxException{
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        URI uri = new URI("http://localhost:8080/api/v1/evento/info-evento/11");
+        HttpEntity<Evento> httpEntity = new HttpEntity<>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<Evento> responseEntity = restTemplate.exchange(uri, HttpMethod.GET, httpEntity,
+                Evento.class);
+
+        Evento evento = responseEntity.getBody();
+        System.out.println("getEventoByID: evento = "+ evento);
+        return evento;
     }
 
     @Test

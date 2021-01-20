@@ -1,5 +1,6 @@
 package TAASS.ServiceDBEventi.controllers;
 
+import TAASS.ServiceDBEventi.classiComode.IscriviEvento;
 import TAASS.ServiceDBEventi.models.Evento;
 import TAASS.ServiceDBEventi.repositories.EventoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,8 +43,27 @@ public class EventoController {
     //TODO: verificarne la correttezza
     @GetMapping("/info-evento/{id}")
     public Evento trovaPerID(@PathVariable long id){
+        System.out.println(">>>trovaPerID: id = " + id);
         Optional<Evento> evento = eventoRepository.findById(id);
-        return evento.get();
+        if(evento.isPresent()){
+            System.out.println(">>>trovaPerID: esiste evento " + id);
+            return evento.get();
+        }else{
+            System.out.println(">>>trovaPerID: NON esiste evento " + id);
+            return null;
+        }
+
+    }
+
+    @GetMapping("/iscritti-evento/{id}")
+    public HashSet<Long> iscrittiEvento(@PathVariable long id){
+        Optional<Evento> iscritti = eventoRepository.findById(id);
+        if(iscritti.isPresent()){
+            return (HashSet<Long>) iscritti.get().getIscritti();
+        }else{
+            return null;
+        }
+
     }
 
     @GetMapping("/eventi-comune/{comune}")
@@ -73,6 +94,14 @@ public class EventoController {
         return nuovoEvento;
     }
 
+    @PostMapping("/iscrivi")
+    public ResponseEntity<Evento> iscrivi(@RequestBody IscriviEvento iscriviEvento){
+        System.out.println(">>>iscrivi: Ho ricevuto: evento = " + iscriviEvento.getEvento().getId() + "; utente = " + iscriviEvento.getUtente());
+        iscriviEvento.getEvento().getIscritti().add(iscriviEvento.getUtente());
+        return new ResponseEntity<>(eventoRepository.save(iscriviEvento.getEvento()), HttpStatus.OK);
+        //return new ResponseEntity<>("Utente <" + iscriviEvento.getUtente() + "> iscritto all'evento " + iscriviEvento.getEvento().getId(), HttpStatus.OK);
+    }
+
     //TODO: verificare se si può creare in maniera più "bella"
     @PutMapping("aggiorna/{id}")
     public ResponseEntity<Evento> aggiornaEvento(@PathVariable("id") long id, @RequestBody Evento evento){
@@ -91,6 +120,7 @@ public class EventoController {
             _evento.setTipoEvento(evento.getTipoEvento());
             _evento.setData(evento.getData());
             _evento.setProprietario(evento.getProprietario());
+            _evento.setIscritti(evento.getIscritti());
             return new ResponseEntity<>(eventoRepository.save(_evento), HttpStatus.OK);
         }else{
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);

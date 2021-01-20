@@ -2,15 +2,15 @@ package TAASS.ServiceDBEventi.models;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import javax.persistence.*;
-import java.util.Date;
+import java.util.*;
 
 @Entity
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Table(name = "evento")
+
 public class Evento {
 
-    public Evento(){
-
+    public Evento() {
     }
 
     public Evento(String nome, int numMaxPartecipanti, int partecipanti, boolean streaming, String descrizione,
@@ -25,6 +25,7 @@ public class Evento {
         this.data = data;
         this.proprietario = proprietario;
         this.comune = comune;
+        iscritti = new HashSet<>();
     }
 
     @Id
@@ -62,6 +63,16 @@ public class Evento {
     @Column(name = "comune")
     private long comune;
 
+    @ElementCollection
+    private Set<Long> iscritti;
+
+    public Set<Long> getIscritti() {
+        return iscritti;
+    }
+
+    public void setIscritti(Set<Long> iscritti) {
+        this.iscritti = iscritti;
+    }
 
     public Long getId() {
         return id;
