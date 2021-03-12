@@ -23,7 +23,7 @@ public class TestGestioneTipoEvento {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         URI uri = new URI("http://localhost:8080/api/v1/tipo-evento");
-        TipoEvento tipoEvento = new TipoEvento("prova", "evento di prova per verificare che tutto funzioni");
+        TipoEvento tipoEvento = new TipoEvento("prova2", "tipo di prova 2");
         HttpEntity<TipoEvento> httpEntity = new HttpEntity<>(tipoEvento, headers);
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<TipoEvento> responseEntity = restTemplate.exchange(uri, HttpMethod.POST, httpEntity,

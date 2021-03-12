@@ -10,6 +10,17 @@ services:
          - db-eventi
       ports:
          - "5432:5432"
+
+   db-utenti:
+     image: postgres:latest
+     environment:
+       POSTGRES_USER: poi
+       POSTGRES_PASSWORD: poi
+       POSTGRES_DB: Piemonte
+     volumes:
+       - db-utenti
+     ports:
+       - "5433:5433"
          
    pgadmin:
         image: dpage/pgadmin4:4.23
@@ -36,11 +47,22 @@ services:
       volumes:
          - servizio-eventi:/usr/app/
 
+   servizio-utenti:
+     image: utenti:0.0.1-SNAPSHOT
+     container_name: servizio-utenti
+     expose:
+       - 8081
+     ports:
+       - 8081:8081
+     volumes:
+       - servizio-utenti:/usr/app/
+
    
 
 volumes:
-   #db-utenti:
+   db-utenti:
    db-eventi:
    pgadmin:
    #db-sondaggi:
    servizio-eventi:
+   servizio-utenti:

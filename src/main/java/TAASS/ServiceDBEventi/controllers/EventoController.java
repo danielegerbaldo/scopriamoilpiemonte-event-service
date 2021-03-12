@@ -17,8 +17,6 @@ import java.util.Optional;
 @RequestMapping("/api/v1/evento")
 public class EventoController {
     /*TODO:
-        -eventi per nome
-        -eventi di un comune
         -eventi a cui partecipa una persona
         -eventi di un tipo
         -eventi di un tipo in un comune
@@ -40,7 +38,14 @@ public class EventoController {
         return eventi;
     }
 
-    //TODO: verificarne la correttezza
+    @GetMapping("/tipo/{tipo}")
+    public List<Evento> trovaPerTipo(@PathVariable long tipo){
+        System.out.println(">>>trovaPerTipo: tipo richiesto: " + tipo);
+        List<Evento> eventi = eventoRepository.findByTipoEventoId(tipo);
+        System.out.println(">>>trovaPerTipo: elementi trovati: " + eventi.size());
+        return eventi;
+    }
+
     @GetMapping("/info-evento/{id}")
     public Evento trovaPerID(@PathVariable long id){
         System.out.println(">>>trovaPerID: id = " + id);
@@ -72,6 +77,19 @@ public class EventoController {
         return eventi;
     }
 
+
+    @DeleteMapping("/disiscrivi")
+    public ResponseEntity<String> disiscrivi(@RequestBody IscriviEvento iscriviEvento){
+        Evento evento = iscriviEvento.getEvento();
+        long utenteID = iscriviEvento.getUtente();
+        if(evento.getIscritti().contains(utenteID)){
+            evento.getIscritti().remove(utenteID);
+            eventoRepository.save(evento);
+            return new ResponseEntity<>("Utente <" + utenteID + "> disiscritto dall'evento " + evento.getId(), HttpStatus.OK);
+        }else{
+            return new ResponseEntity<>("L'utente <" + utenteID + "> non risulta iscritto all'evento " + evento.getId(), HttpStatus.NO_CONTENT);
+        }
+    }
 
     @DeleteMapping("/deleteAll")
     public ResponseEntity<String> rimuoviTuttiEventi(){

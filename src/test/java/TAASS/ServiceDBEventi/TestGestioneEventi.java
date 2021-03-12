@@ -33,13 +33,13 @@ public class TestGestioneEventi {
     @Autowired MockMvc mockMvc;
 
     @Test
-    public void creaEvento() throws URISyntaxException {
+    /*public void creaEvento() throws URISyntaxException {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         TipoEvento tipo = getTipoProva();
         URI uri = new URI("http://localhost:8080/api/v1/evento");
-        Evento evento = new Evento("prov12", 10, 1, false,
-                "evento di prova", "prova", tipo, null, 1, 1);
+        Evento evento = new Evento("prova8", 50, 10, false,
+                "evento di prova per verificare che i tipi siano giusti", "prova", tipo, null, 1, 1);
         HttpEntity<Evento> httpEntity = new HttpEntity<>(evento, headers);
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<Evento> responseEntity = restTemplate.exchange(uri, HttpMethod.POST, httpEntity,
@@ -47,11 +47,11 @@ public class TestGestioneEventi {
         lastAdd = responseEntity.getBody().getId();
         System.out.println("Status Code: " + responseEntity.getStatusCode());
         System.out.println(responseEntity.getBody().toString());
-    }
+    }*/
 
     public TipoEvento getTipoProva() throws URISyntaxException {
         TipoEvento tipo = null;
-        URI uri = new URI("http://localhost:8080/api/v1/tipo-evento/getById/10");
+        URI uri = new URI("http://localhost:8080/api/v1/tipo-evento/getById/12");
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<TipoEvento> httpEntity = new HttpEntity<>(headers);
@@ -76,7 +76,24 @@ public class TestGestioneEventi {
         ResponseEntity<Evento> responseEntity = restTemplate.exchange(uri, HttpMethod.POST, httpEntity,
                 Evento.class);
         System.out.println("Status Code: " + responseEntity.getStatusCode());
-        //System.out.println(responseEntity.getBody().toString());
+        System.out.println(responseEntity.getBody().toString());
+    }
+
+    @Test
+    public void disiscriviEvento() throws URISyntaxException {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        URI uri = new URI("http://localhost:8080/api/v1/evento/disiscrivi");
+        Evento evento = getEventoByID();
+        System.out.println("evento = " + evento.getId());
+        long utente = 1;
+        IscriviEvento iscriviEvento = new IscriviEvento(evento, utente);
+        HttpEntity<IscriviEvento> httpEntity = new HttpEntity<>(iscriviEvento, headers);
+        RestTemplate restTemplate = new RestTemplate();
+        ResponseEntity<String> responseEntity = restTemplate.exchange(uri, HttpMethod.DELETE, httpEntity,
+                String.class);
+        System.out.println("Status Code: " + responseEntity.getStatusCode());
+        System.out.println(responseEntity.getBody().toString());
     }
 
     private Evento getEventoByID() throws URISyntaxException{
@@ -93,7 +110,7 @@ public class TestGestioneEventi {
         return evento;
     }
 
-    @Test
+    /*@Test
     public void modificaEvento() throws URISyntaxException{
         System.out.println("prova modifica evento");
         System.out.println("creo l'evento da modificare");
@@ -105,7 +122,7 @@ public class TestGestioneEventi {
         //headers.add("id", "6");
 
         Evento evento = new Evento("modificato", 20, 2, false,
-                "evento di prova modificato", "modifica", new TipoEvento(), null, 1, 1);
+                "evento di prova modificato", "modifica", new TipoEvento(), null, 1, 1);*/
         /*
         ObjectMapper mapper = new ObjectMapper();
         String eventoJSON = "[]";
@@ -116,6 +133,7 @@ public class TestGestioneEventi {
             System.out.println("errore nella conversione a JSON");
         }
         */
+    /*
         URI uri = new URI("http://localhost:8080/api/v1/evento/aggiorna/" + lastAdd);
         HttpEntity<Evento> httpEntity = new HttpEntity<>(evento, headers);
 
@@ -127,7 +145,7 @@ public class TestGestioneEventi {
                 Evento.class);
         System.out.println("Status Code: " + responseEntity.getStatusCode());
         System.out.println("Status value: " + responseEntity.getStatusCodeValue());
-    }
+    }*/
 
     @Test
     public void cancellaEvento() throws URISyntaxException {
@@ -142,7 +160,7 @@ public class TestGestioneEventi {
         System.out.println("Status value: " + responseEntity.getStatusCodeValue());
     }
 
-    @Test
+    /*@Test
     public void cancellaTutti() throws URISyntaxException {
         System.out.println("test cancello tutti gli eventi");
         System.out.println("creo due eventi");
@@ -158,7 +176,7 @@ public class TestGestioneEventi {
                 String.class);
         System.out.println("Status Code: " + responseEntity.getStatusCode());
         System.out.println("Status value: " + responseEntity.getStatusCodeValue());
-    }
+    }*/
 
 }
 
