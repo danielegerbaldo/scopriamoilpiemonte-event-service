@@ -4,21 +4,17 @@ import TAASS.ServiceDBEventi.classiComode.IscriviEvento;
 import TAASS.ServiceDBEventi.models.Evento;
 import TAASS.ServiceDBEventi.repositories.EventoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/v1/evento")
 public class EventoController {
     /*TODO:
-        -eventi per nome
-        -eventi di un comune
         -eventi a cui partecipa una persona
         -eventi di un tipo
         -eventi di un tipo in un comune
@@ -34,13 +30,29 @@ public class EventoController {
         return eventi;
     }
 
+    @GetMapping("/eventi-non-iscritto/{utenteID}")
+    public List<Evento> getEventiUtenteNonIscritto(@PathVariable long utenteID ){
+        System.out.println(">>>getEventiUtenteNonIscritto: uid: " + utenteID);
+        List<Evento> eventi = eventoRepository.findEventiUtenteNonIscritto(utenteID);
+        System.out.println(">>>getEventiUtenteNonIscritto: size: " + eventi.size());
+        return eventi;
+    }
+
     @GetMapping("/nome/{nome}")
     public List<Evento> trovaPerNome(@PathVariable String nome){
         List <Evento> eventi = eventoRepository.findByNome(nome);
         return eventi;
     }
 
-    //TODO: verificarne la correttezza
+    @GetMapping("/tipo/{tipo}")
+    public List<Evento> trovaPerTipo(@PathVariable long tipo){
+        System.out.println(">>>trovaPerTipo: tipo richiesto: " + tipo);
+        List<Evento> eventi = eventoRepository.findByTipoEventoId(tipo);
+        System.out.println(">>>trovaPerTipo: elementi trovati: " + eventi.size());
+        return eventi;
+    }
+
+    //si può cancellare
     @GetMapping("/info-evento/{id}")
     public Evento trovaPerID(@PathVariable long id){
         System.out.println(">>>trovaPerID: id = " + id);
@@ -68,10 +80,33 @@ public class EventoController {
 
     @GetMapping("/eventi-comune/{comune}")
     public List<Evento> eventiDelComune(@PathVariable long comune){
+        System.out.println("# richiesta di tutti gli eventi del comune: " + comune);
         List<Evento> eventi = eventoRepository.findByComune(comune);
         return eventi;
     }
 
+    @GetMapping("/iscrizione-utente/{utenteID}")
+    public List<Evento> eventiUtenteIscritto(@PathVariable long utenteID){
+        //restituisce l'elenco di tutti gli eventi a cui è iscritto un utente
+        return eventoRepository.findIscrizioniUtente(utenteID);
+    }
+
+    @PostMapping("/disiscrivi")
+    public ResponseEntity<Map<String,String>> disiscrivi(@RequestBody Map<String,Long> body){
+        Evento evento = trovaPerID(body.get("evento_id"));
+        long utenteID = body.get("utente_id");
+        Map<String,String> response = new HashMap<>();
+        if(evento.getIscritti().contains(utenteID)){
+            evento.getIscritti().remove(utenteID);
+            evento.setPartecipanti(evento.getPartecipanti() - 1);
+            eventoRepository.save(evento);
+            response.put("messaggio", "Utente <" + utenteID + "> disiscritto dall'evento " + evento.getId());
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }else{
+            response.put("messaggio", "Utente <" + utenteID + "> non risulta iscritto all evento:  " + evento.getId());
+            return new ResponseEntity<>(response,  HttpStatus.NO_CONTENT);
+        }
+    }
 
     @DeleteMapping("/deleteAll")
     public ResponseEntity<String> rimuoviTuttiEventi(){
@@ -79,15 +114,23 @@ public class EventoController {
         return new ResponseEntity<>("tutti gli eventi sono stati cancellati con successo", HttpStatus.OK);
     }
 
-    @DeleteMapping("/deleteById")
-    public ResponseEntity<String> rimuoviUtentePerID(@RequestBody long id/*@PathVariable long  id*/){
-        eventoRepository.deleteById(id);
-        return new ResponseEntity<>("l'evento con ID = " + id + "e' stato rimosso", HttpStatus.OK);
+    @DeleteMapping("/deleteById/{eventoID}")
+    public ResponseEntity<Map<String, String>> eliminaEventoID(@PathVariable long eventoID/*@PathVariable long  id*/){
+        Map<String, String> response = new HashMap<String, String>();
+        if(trovaPerID(eventoID) != null){
+            eventoRepository.deleteById(eventoID);
+            response.put("messaggio", "Eliminazione avvenuta con successo");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }else{
+            response.put("messaggio", "Non esiste l'evento che si desidera eliminare");
+            return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        }
     }
 
     @PostMapping
     public Evento addEvento(@RequestBody Evento evento){
-        System.out.println(">>>addEvento: aggiungo evento: " + evento);
+        //@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        System.out.println("#addEvento: aggiungo evento: " + evento);
         Evento nuovoEvento = eventoRepository.save(new Evento(evento.getNome(), evento.getNumMaxPartecipanti(),
                 evento.getPartecipanti(), evento.isStreaming(), evento.getDescrizione(), evento.getNote(),
                 evento.getTipoEvento(), evento.getData(), evento.getProprietario(), evento.getComune()));
@@ -103,7 +146,7 @@ public class EventoController {
     }
 
     //TODO: verificare se si può creare in maniera più "bella"
-    @PutMapping("aggiorna/{id}")
+    @PutMapping("/aggiorna/{id}")
     public ResponseEntity<Evento> aggiornaEvento(@PathVariable("id") long id, @RequestBody Evento evento){
         System.out.println(">>>aggiornaEvento: ricevuto id = " + id);
         Optional<Evento> datiEvento = eventoRepository.findById(id);
@@ -127,5 +170,37 @@ public class EventoController {
         }
     }
 
+    @PostMapping("/prenota")
+    public ResponseEntity<Map<String, String>> prenotaEvento(@RequestBody Map<String, Long> body){
+        //verifico che ci siano ancora posti disponibili
+        long eventoID = body.get("evento_id");
+        long utenteID = body.get("utente_id");
+        System.out.println(">>>richiesta iscrizione da: <" + utenteID + "> per <" + eventoID + ">");
+        Evento evento = trovaPerID(eventoID);
+        String message;
+        Map<String,String> response = new HashMap<>();
+        if(evento.getPartecipanti() >= evento.getNumMaxPartecipanti()){
+            System.out.println(">>>richiesta iscrizione: posti esauriti");
+            message = "Non ci sono più posti disponibili";
+            response.put("messaggio", message);
+            return new ResponseEntity<Map<String,String>>(response, HttpStatus.CONFLICT);
+        }
+        //controllo che non si sia già iscritto
+        boolean daIscrivere = eventoRepository.findOccorrenzeIscrizioniUtenteStessoEvento(utenteID, eventoID) == 0;
+        if(! daIscrivere){
+            System.out.println(">>>richiesta iscrizione: già iscritto");
+            message = "Risulti già iscritto a questo evento!";
+            response.put("messaggio", message);
+            return new ResponseEntity<Map<String,String>>(response, HttpStatus.CONFLICT);
+        }
+        //aggiungo l'iscrizione e incremento di 1 il valore degli iscritti
+        evento.setPartecipanti(evento.getPartecipanti() + 1);
+        evento.getIscritti().add(utenteID);
+        aggiornaEvento(eventoID, evento);
+        System.out.println(">>>richiesta iscrizione: iscrizione avvenuta");
+        message = "Iscrizione completata!";
+        response.put("messaggio", message);
+        return new ResponseEntity<Map<String,String>>(response, HttpStatus.OK);
+    }
 
 }

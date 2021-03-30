@@ -7,7 +7,6 @@ import java.util.*;
 @Entity
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Table(name = "evento")
-
 public class Evento {
 
     public Evento() {
