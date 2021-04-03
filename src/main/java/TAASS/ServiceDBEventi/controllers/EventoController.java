@@ -9,6 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @RestController
@@ -30,11 +33,28 @@ public class EventoController {
         return eventi;
     }
 
+    @GetMapping("/non-scaduti")
+    public List<Evento> getEventiNonScaduti(){
+        List<Evento> eventi;
+        Date date =ottieniData();
+        System.out.println("#eventi non scaduti: data attuale: " + date);
+        eventi = eventoRepository.findTuttiEventiNonScaduti(date);
+        return eventi;
+    }
+
     @GetMapping("/eventi-non-iscritto/{utenteID}")
     public List<Evento> getEventiUtenteNonIscritto(@PathVariable long utenteID ){
-        System.out.println(">>>getEventiUtenteNonIscritto: uid: " + utenteID);
+        System.out.println("#getEventiUtenteNonIscritto: uid: " + utenteID);
         List<Evento> eventi = eventoRepository.findEventiUtenteNonIscritto(utenteID);
-        System.out.println(">>>getEventiUtenteNonIscritto: size: " + eventi.size());
+        System.out.println("#getEventiUtenteNonIscritto: size: " + eventi.size());
+        return eventi;
+    }
+
+    @GetMapping("/eventi-non-iscritto-non-scaduti/{utenteID}")
+    public List<Evento> getEventiUtenteNonIscrittoNonscaduti(@PathVariable long utenteID ){
+        System.out.println("#getEventiUtenteNonIscritto: uid: " + utenteID);
+        List<Evento> eventi = eventoRepository.findEventiUtenteNonIscrittoNonScaduti(utenteID, ottieniData() );
+        System.out.println("#getEventiUtenteNonIscritto: size: " + eventi.size());
         return eventi;
     }
 
@@ -46,22 +66,22 @@ public class EventoController {
 
     @GetMapping("/tipo/{tipo}")
     public List<Evento> trovaPerTipo(@PathVariable long tipo){
-        System.out.println(">>>trovaPerTipo: tipo richiesto: " + tipo);
+        System.out.println("#trovaPerTipo: tipo richiesto: " + tipo);
         List<Evento> eventi = eventoRepository.findByTipoEventoId(tipo);
-        System.out.println(">>>trovaPerTipo: elementi trovati: " + eventi.size());
+        System.out.println("#trovaPerTipo: elementi trovati: " + eventi.size());
         return eventi;
     }
 
     //si può cancellare
     @GetMapping("/info-evento/{id}")
     public Evento trovaPerID(@PathVariable long id){
-        System.out.println(">>>trovaPerID: id = " + id);
+        System.out.println("#trovaPerID: id = " + id);
         Optional<Evento> evento = eventoRepository.findById(id);
         if(evento.isPresent()){
-            System.out.println(">>>trovaPerID: esiste evento " + id);
+            System.out.println("#trovaPerID: esiste evento " + id);
             return evento.get();
         }else{
-            System.out.println(">>>trovaPerID: NON esiste evento " + id);
+            System.out.println("#trovaPerID: NON esiste evento " + id);
             return null;
         }
 
@@ -85,10 +105,23 @@ public class EventoController {
         return eventi;
     }
 
+    @GetMapping("/eventi-comune-non-scaduti/{comune}")
+    public List<Evento> eventiDelComuneNonScaduti(@PathVariable long comune){
+        System.out.println("# richiesta di tutti gli eventi del comune: " + comune);
+        List<Evento> eventi = eventoRepository.findByComuneNonScaduti(comune, ottieniData());
+        return eventi;
+    }
+
     @GetMapping("/iscrizione-utente/{utenteID}")
     public List<Evento> eventiUtenteIscritto(@PathVariable long utenteID){
         //restituisce l'elenco di tutti gli eventi a cui è iscritto un utente
         return eventoRepository.findIscrizioniUtente(utenteID);
+    }
+
+    @GetMapping("/iscrizione-utente-non-scaduti/{utenteID}")
+    public List<Evento> eventiUtenteIscrittoNonScaduti(@PathVariable long utenteID){
+        //restituisce l'elenco di tutti gli eventi a cui è iscritto un utente
+        return eventoRepository.findIscrizioniUtenteNonScaduti(utenteID, ottieniData());
     }
 
     @PostMapping("/disiscrivi")
@@ -131,6 +164,8 @@ public class EventoController {
     public Evento addEvento(@RequestBody Evento evento){
         //@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
         System.out.println("#addEvento: aggiungo evento: " + evento);
+        System.out.println("#addEvento: tipo evento: " + evento.getTipoEvento().getId() + " = " + evento.getTipoEvento().getNome());
+        System.out.println("#addEvento: data: " + evento.getData());
         Evento nuovoEvento = eventoRepository.save(new Evento(evento.getNome(), evento.getNumMaxPartecipanti(),
                 evento.getPartecipanti(), evento.isStreaming(), evento.getDescrizione(), evento.getNote(),
                 evento.getTipoEvento(), evento.getData(), evento.getProprietario(), evento.getComune()));
@@ -139,7 +174,7 @@ public class EventoController {
 
     @PostMapping("/iscrivi")
     public ResponseEntity<Evento> iscrivi(@RequestBody IscriviEvento iscriviEvento){
-        System.out.println(">>>iscrivi: Ho ricevuto: evento = " + iscriviEvento.getEvento().getId() + "; utente = " + iscriviEvento.getUtente());
+        System.out.println("#iscrivi: Ho ricevuto: evento = " + iscriviEvento.getEvento().getId() + "; utente = " + iscriviEvento.getUtente());
         iscriviEvento.getEvento().getIscritti().add(iscriviEvento.getUtente());
         return new ResponseEntity<>(eventoRepository.save(iscriviEvento.getEvento()), HttpStatus.OK);
         //return new ResponseEntity<>("Utente <" + iscriviEvento.getUtente() + "> iscritto all'evento " + iscriviEvento.getEvento().getId(), HttpStatus.OK);
@@ -148,7 +183,7 @@ public class EventoController {
     //TODO: verificare se si può creare in maniera più "bella"
     @PutMapping("/aggiorna/{id}")
     public ResponseEntity<Evento> aggiornaEvento(@PathVariable("id") long id, @RequestBody Evento evento){
-        System.out.println(">>>aggiornaEvento: ricevuto id = " + id);
+        System.out.println("#aggiornaEvento: ricevuto id = " + id);
         Optional<Evento> datiEvento = eventoRepository.findById(id);
 
         if(datiEvento.isPresent()){
@@ -175,12 +210,12 @@ public class EventoController {
         //verifico che ci siano ancora posti disponibili
         long eventoID = body.get("evento_id");
         long utenteID = body.get("utente_id");
-        System.out.println(">>>richiesta iscrizione da: <" + utenteID + "> per <" + eventoID + ">");
+        System.out.println("#richiesta iscrizione da: <" + utenteID + "> per <" + eventoID + ">");
         Evento evento = trovaPerID(eventoID);
         String message;
         Map<String,String> response = new HashMap<>();
         if(evento.getPartecipanti() >= evento.getNumMaxPartecipanti()){
-            System.out.println(">>>richiesta iscrizione: posti esauriti");
+            System.out.println("#richiesta iscrizione: posti esauriti");
             message = "Non ci sono più posti disponibili";
             response.put("messaggio", message);
             return new ResponseEntity<Map<String,String>>(response, HttpStatus.CONFLICT);
@@ -188,7 +223,7 @@ public class EventoController {
         //controllo che non si sia già iscritto
         boolean daIscrivere = eventoRepository.findOccorrenzeIscrizioniUtenteStessoEvento(utenteID, eventoID) == 0;
         if(! daIscrivere){
-            System.out.println(">>>richiesta iscrizione: già iscritto");
+            System.out.println("#richiesta iscrizione: già iscritto");
             message = "Risulti già iscritto a questo evento!";
             response.put("messaggio", message);
             return new ResponseEntity<Map<String,String>>(response, HttpStatus.CONFLICT);
@@ -197,10 +232,16 @@ public class EventoController {
         evento.setPartecipanti(evento.getPartecipanti() + 1);
         evento.getIscritti().add(utenteID);
         aggiornaEvento(eventoID, evento);
-        System.out.println(">>>richiesta iscrizione: iscrizione avvenuta");
+        System.out.println("#richiesta iscrizione: iscrizione avvenuta");
         message = "Iscrizione completata!";
         response.put("messaggio", message);
         return new ResponseEntity<Map<String,String>>(response, HttpStatus.OK);
+    }
+
+    private Date ottieniData(){
+        Calendar calendar = Calendar.getInstance();
+        Date date = calendar.getTime();
+        return date;
     }
 
 }
