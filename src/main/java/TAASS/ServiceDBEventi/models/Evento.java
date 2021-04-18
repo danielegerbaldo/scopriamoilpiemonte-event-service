@@ -13,7 +13,8 @@ public class Evento {
     }
 
     public Evento(String nome, int numMaxPartecipanti, int partecipanti, boolean streaming, String descrizione,
-                  String note, TipoEvento tipoEvento, Date data, long proprietario, long comune) {
+                  String note, TipoEvento tipoEvento, Date data, long proprietario, Comune comune, String indirizzo,
+                  double prezzo, String coordinate) {
         this.nome = nome;
         this.numMaxPartecipanti = numMaxPartecipanti;
         this.partecipanti = partecipanti;
@@ -24,6 +25,9 @@ public class Evento {
         this.data = data;
         this.proprietario = proprietario;
         this.comune = comune;
+        this.indirizzo = indirizzo;
+        this.prezzo = prezzo;
+        this.coordinate = coordinate;
         iscritti = new HashSet<>();
     }
 
@@ -60,11 +64,25 @@ public class Evento {
     private long proprietario;
 
     @Column(name = "comune")
-    private long comune;
+    @ManyToOne
+    private Comune comune;
+
+    @Column(name = "indirizzo")
+    private String indirizzo;
 
     @ElementCollection
     private Set<Long> iscritti;
 
+    @Column(name = "prezzo")
+    private double prezzo;
+
+    @Column(name = "coordinate")
+    private String coordinate;
+
+
+
+
+    // getter e setter
     public Set<Long> getIscritti() {
         return iscritti;
     }
@@ -153,17 +171,37 @@ public class Evento {
         this.proprietario = proprietario;
     }
 
-    public long getComune() {
+    public Comune getComune() {
         return comune;
     }
 
-    public void setComune(long comune) {
+    public void setComune(Comune comune) {
         this.comune = comune;
     }
 
-    /*public String toString(){
-        return "id: " + id + "; nome: " + nome + "; desc.: " + descrizione;
-    }*/
+    public String getIndirizzo() {
+        return indirizzo;
+    }
+
+    public void setIndirizzo(String indirizzo) {
+        this.indirizzo = indirizzo;
+    }
+
+    public double getPrezzo() {
+        return prezzo;
+    }
+
+    public void setPrezzo(double prezzo) {
+        this.prezzo = prezzo;
+    }
+
+    public String getCoordinate() {
+        return coordinate;
+    }
+
+    public void setCoordinate(String coordinate) {
+        this.coordinate = coordinate;
+    }
 
     public Long castLongObject(){
         return id;

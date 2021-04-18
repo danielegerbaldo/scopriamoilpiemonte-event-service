@@ -37,24 +37,42 @@ public class EventoController {
     public List<Evento> getEventiNonScaduti(){
         List<Evento> eventi;
         Date date =ottieniData();
-        System.out.println("#eventi non scaduti: data attuale: " + date);
+        System.out.println("# eventi non scaduti: data attuale: " + date);
         eventi = eventoRepository.findTuttiEventiNonScaduti(date);
         return eventi;
     }
 
     @GetMapping("/eventi-non-iscritto/{utenteID}")
     public List<Evento> getEventiUtenteNonIscritto(@PathVariable long utenteID ){
-        System.out.println("#getEventiUtenteNonIscritto: uid: " + utenteID);
+        System.out.println("# getEventiUtenteNonIscritto: uid: " + utenteID);
         List<Evento> eventi = eventoRepository.findEventiUtenteNonIscritto(utenteID);
-        System.out.println("#getEventiUtenteNonIscritto: size: " + eventi.size());
+        System.out.println("# getEventiUtenteNonIscritto: size: " + eventi.size());
         return eventi;
     }
 
     @GetMapping("/eventi-non-iscritto-non-scaduti/{utenteID}")
     public List<Evento> getEventiUtenteNonIscrittoNonscaduti(@PathVariable long utenteID ){
-        System.out.println("#getEventiUtenteNonIscritto: uid: " + utenteID);
+        System.out.println("# getEventiUtenteNonIscritto: uid: " + utenteID);
+        //start debug
+        //stampa tutti gli iscritti a tutti gli eventi
+        List<Evento> tuttiEventi = getAllEventi();
+        System.out.println("#\tlista iscrizioni eventi");
+        for(int i = 0; i < tuttiEventi.size(); i++){
+            System.out.println("#\t\tevento: " + tuttiEventi.get(i).getId() + ", nome = " + tuttiEventi.get(i).getNome());
+            ArrayList<Long> iscritti = new ArrayList<Long> (tuttiEventi.get(i).getIscritti()) ;
+            for(int j = 0; j < iscritti.size(); j++ ){
+                System.out.println("#\t\t\t-" +  iscritti.get(j));
+            }
+        }
+        //stampa tutti gli eventi a cui non sono iscritto
+        List<Evento> eventiNonIscritto = eventoRepository.findEventiUtenteNonIscritto(utenteID);
+        System.out.println("#\tlista non iscritto");
+        for(int i = 0; i < eventiNonIscritto.size(); i++){
+            System.out.println("#\t\t" + eventiNonIscritto.get(i).getId() + ", " + eventiNonIscritto.get(i).getNome());
+        }
+        //stop debug
         List<Evento> eventi = eventoRepository.findEventiUtenteNonIscrittoNonScaduti(utenteID, ottieniData() );
-        System.out.println("#getEventiUtenteNonIscritto: size: " + eventi.size());
+        System.out.println("# getEventiUtenteNonIscritto: size: " + eventi.size());
         return eventi;
     }
 
@@ -66,22 +84,22 @@ public class EventoController {
 
     @GetMapping("/tipo/{tipo}")
     public List<Evento> trovaPerTipo(@PathVariable long tipo){
-        System.out.println("#trovaPerTipo: tipo richiesto: " + tipo);
+        System.out.println("# trovaPerTipo: tipo richiesto: " + tipo);
         List<Evento> eventi = eventoRepository.findByTipoEventoId(tipo);
-        System.out.println("#trovaPerTipo: elementi trovati: " + eventi.size());
+        System.out.println("# trovaPerTipo: elementi trovati: " + eventi.size());
         return eventi;
     }
 
     //si può cancellare
     @GetMapping("/info-evento/{id}")
     public Evento trovaPerID(@PathVariable long id){
-        System.out.println("#trovaPerID: id = " + id);
+        System.out.println("# trovaPerID: id = " + id);
         Optional<Evento> evento = eventoRepository.findById(id);
         if(evento.isPresent()){
-            System.out.println("#trovaPerID: esiste evento " + id);
+            System.out.println("#\ttrovaPerID: esiste evento " + id);
             return evento.get();
         }else{
-            System.out.println("#trovaPerID: NON esiste evento " + id);
+            System.out.println("#\ttrovaPerID: NON esiste evento " + id);
             return null;
         }
 
@@ -163,18 +181,20 @@ public class EventoController {
     @PostMapping
     public Evento addEvento(@RequestBody Evento evento){
         //@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-        System.out.println("#addEvento: aggiungo evento: " + evento);
-        System.out.println("#addEvento: tipo evento: " + evento.getTipoEvento().getId() + " = " + evento.getTipoEvento().getNome());
-        System.out.println("#addEvento: data: " + evento.getData());
+        System.out.println("# Aggiungi evento");
+        System.out.println("#\taddEvento: aggiungo evento: " + evento);
+        System.out.println("#\taddEvento: tipo evento: " + evento.getTipoEvento().getId() + " = " + evento.getTipoEvento().getNome());
+        System.out.println("#\taddEvento: data: " + evento.getData());
         Evento nuovoEvento = eventoRepository.save(new Evento(evento.getNome(), evento.getNumMaxPartecipanti(),
                 evento.getPartecipanti(), evento.isStreaming(), evento.getDescrizione(), evento.getNote(),
-                evento.getTipoEvento(), evento.getData(), evento.getProprietario(), evento.getComune()));
+                evento.getTipoEvento(), evento.getData(), evento.getProprietario(), evento.getComune(), evento.getIndirizzo(),
+                evento.getPrezzo(), evento.getCoordinate()));
         return nuovoEvento;
     }
 
     @PostMapping("/iscrivi")
     public ResponseEntity<Evento> iscrivi(@RequestBody IscriviEvento iscriviEvento){
-        System.out.println("#iscrivi: Ho ricevuto: evento = " + iscriviEvento.getEvento().getId() + "; utente = " + iscriviEvento.getUtente());
+        System.out.println("# iscrivi: Ho ricevuto: evento = " + iscriviEvento.getEvento().getId() + "; utente = " + iscriviEvento.getUtente());
         iscriviEvento.getEvento().getIscritti().add(iscriviEvento.getUtente());
         return new ResponseEntity<>(eventoRepository.save(iscriviEvento.getEvento()), HttpStatus.OK);
         //return new ResponseEntity<>("Utente <" + iscriviEvento.getUtente() + "> iscritto all'evento " + iscriviEvento.getEvento().getId(), HttpStatus.OK);
@@ -183,7 +203,7 @@ public class EventoController {
     //TODO: verificare se si può creare in maniera più "bella"
     @PutMapping("/aggiorna/{id}")
     public ResponseEntity<Evento> aggiornaEvento(@PathVariable("id") long id, @RequestBody Evento evento){
-        System.out.println("#aggiornaEvento: ricevuto id = " + id);
+        System.out.println("# aggiornaEvento: ricevuto id = " + id);
         Optional<Evento> datiEvento = eventoRepository.findById(id);
 
         if(datiEvento.isPresent()){
@@ -199,6 +219,10 @@ public class EventoController {
             _evento.setData(evento.getData());
             _evento.setProprietario(evento.getProprietario());
             _evento.setIscritti(evento.getIscritti());
+            _evento.setComune(evento.getComune());
+            _evento.setIndirizzo(evento.getIndirizzo());
+            _evento.setPrezzo(evento.getPrezzo());
+            _evento.setCoordinate(evento.getCoordinate());
             return new ResponseEntity<>(eventoRepository.save(_evento), HttpStatus.OK);
         }else{
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -210,12 +234,12 @@ public class EventoController {
         //verifico che ci siano ancora posti disponibili
         long eventoID = body.get("evento_id");
         long utenteID = body.get("utente_id");
-        System.out.println("#richiesta iscrizione da: <" + utenteID + "> per <" + eventoID + ">");
+        System.out.println("# richiesta iscrizione da: <" + utenteID + "> per <" + eventoID + ">");
         Evento evento = trovaPerID(eventoID);
         String message;
         Map<String,String> response = new HashMap<>();
         if(evento.getPartecipanti() >= evento.getNumMaxPartecipanti()){
-            System.out.println("#richiesta iscrizione: posti esauriti");
+            System.out.println("#\trichiesta iscrizione: posti esauriti");
             message = "Non ci sono più posti disponibili";
             response.put("messaggio", message);
             return new ResponseEntity<Map<String,String>>(response, HttpStatus.CONFLICT);
@@ -223,7 +247,7 @@ public class EventoController {
         //controllo che non si sia già iscritto
         boolean daIscrivere = eventoRepository.findOccorrenzeIscrizioniUtenteStessoEvento(utenteID, eventoID) == 0;
         if(! daIscrivere){
-            System.out.println("#richiesta iscrizione: già iscritto");
+            System.out.println("#\trichiesta iscrizione: già iscritto");
             message = "Risulti già iscritto a questo evento!";
             response.put("messaggio", message);
             return new ResponseEntity<Map<String,String>>(response, HttpStatus.CONFLICT);
@@ -232,7 +256,7 @@ public class EventoController {
         evento.setPartecipanti(evento.getPartecipanti() + 1);
         evento.getIscritti().add(utenteID);
         aggiornaEvento(eventoID, evento);
-        System.out.println("#richiesta iscrizione: iscrizione avvenuta");
+        System.out.println("#\trichiesta iscrizione: iscrizione avvenuta");
         message = "Iscrizione completata!";
         response.put("messaggio", message);
         return new ResponseEntity<Map<String,String>>(response, HttpStatus.OK);
@@ -241,6 +265,7 @@ public class EventoController {
     private Date ottieniData(){
         Calendar calendar = Calendar.getInstance();
         Date date = calendar.getTime();
+        System.out.println("#\tdata: " + date);
         return date;
     }
 
