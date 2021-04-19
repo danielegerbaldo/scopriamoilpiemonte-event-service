@@ -63,8 +63,8 @@ public class Evento {
     @Column(name="proprietario")
     private long proprietario;
 
-    @Column(name = "comune")
     @ManyToOne
+    @JoinColumn(name = "comune")
     private Comune comune;
 
     @Column(name = "indirizzo")

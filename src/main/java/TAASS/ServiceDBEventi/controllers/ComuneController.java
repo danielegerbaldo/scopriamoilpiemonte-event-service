@@ -18,7 +18,7 @@ public class ComuneController {
         return comuneRepository.findById(comuneID);
     }
 
-    @PostMapping("/genera-indirizzo")
+    @GetMapping("/genera-indirizzo-via-id")
     public String getIndirizzoGenerato(@RequestBody String via, @RequestBody long comuneID){
         Optional<Comune> comune = getComuneById(comuneID);
         if(comune.isPresent()){
@@ -28,7 +28,7 @@ public class ComuneController {
         }
     }
 
-    @PostMapping("/genera-indirizzo")
+    @GetMapping("/genera-indirizzo-via-comune")
     public String getIndirizzoGenerato(@RequestBody String via, @RequestBody Comune comune){
         return comune.generaIndirizzo(via);
     }
