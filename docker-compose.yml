@@ -7,10 +7,8 @@ services:
           POSTGRES_PASSWORD: poi
           POSTGRES_DB: Piemonte      
       volumes:
-         - db-eventi
-      ports:
-         - "5432:5432"
-         
+         - db-eventi:/usr/app/
+
    pgadmin:
         image: dpage/pgadmin4:4.23
         environment:
