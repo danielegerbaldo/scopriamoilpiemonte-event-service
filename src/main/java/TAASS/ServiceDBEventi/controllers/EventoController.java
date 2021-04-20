@@ -188,7 +188,7 @@ public class EventoController {
         Evento nuovoEvento = eventoRepository.save(new Evento(evento.getNome(), evento.getNumMaxPartecipanti(),
                 evento.getPartecipanti(), evento.isStreaming(), evento.getDescrizione(), evento.getNote(),
                 evento.getTipoEvento(), evento.getData(), evento.getProprietario(), evento.getComune(), evento.getIndirizzo(),
-                evento.getPrezzo(), evento.getCoordinate()));
+                evento.getPrezzo(), evento.getLatitudine(), evento.getLongitudine()));
         return nuovoEvento;
     }
 
@@ -222,7 +222,8 @@ public class EventoController {
             _evento.setComune(evento.getComune());
             _evento.setIndirizzo(evento.getIndirizzo());
             _evento.setPrezzo(evento.getPrezzo());
-            _evento.setCoordinate(evento.getCoordinate());
+            _evento.setLatitudine(evento.getLatitudine());
+            _evento.setLongitudine(evento.getLongitudine());
             return new ResponseEntity<>(eventoRepository.save(_evento), HttpStatus.OK);
         }else{
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);

@@ -14,7 +14,7 @@ public class Evento {
 
     public Evento(String nome, int numMaxPartecipanti, int partecipanti, boolean streaming, String descrizione,
                   String note, TipoEvento tipoEvento, Date data, long proprietario, Comune comune, String indirizzo,
-                  double prezzo, String coordinate) {
+                  double prezzo, double latitudine, double longitudine) {
         this.nome = nome;
         this.numMaxPartecipanti = numMaxPartecipanti;
         this.partecipanti = partecipanti;
@@ -27,7 +27,8 @@ public class Evento {
         this.comune = comune;
         this.indirizzo = indirizzo;
         this.prezzo = prezzo;
-        this.coordinate = coordinate;
+        this.latitudine = latitudine;
+        this.longitudine = longitudine;
         iscritti = new HashSet<>();
     }
 
@@ -76,8 +77,11 @@ public class Evento {
     @Column(name = "prezzo")
     private double prezzo;
 
-    @Column(name = "coordinate")
-    private String coordinate;
+    @Column(name = "latitudine")
+    private double latitudine;
+
+    @Column(name = "longitudine")
+    private double longitudine;
 
 
 
@@ -195,12 +199,20 @@ public class Evento {
         this.prezzo = prezzo;
     }
 
-    public String getCoordinate() {
-        return coordinate;
+    public void setLatitudine(double latitude) {
+        this.latitudine = latitude;
     }
 
-    public void setCoordinate(String coordinate) {
-        this.coordinate = coordinate;
+    public void setLongitudine(double longitude) {
+        this.longitudine = longitude;
+    }
+
+    public double getLatitudine() {
+        return latitudine;
+    }
+
+    public double getLongitudine() {
+        return longitudine;
     }
 
     public Long castLongObject(){
