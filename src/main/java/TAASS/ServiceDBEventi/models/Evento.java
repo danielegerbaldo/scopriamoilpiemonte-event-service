@@ -13,7 +13,7 @@ public class Evento {
     }
 
     public Evento(String nome, int numMaxPartecipanti, int partecipanti, boolean streaming, String descrizione,
-                  String note, TipoEvento tipoEvento, Date data, long proprietario, Comune comune, String indirizzo,
+                  String note, TipoEvento tipoEvento, Date data, long proprietario, long comune, String indirizzo,
                   double prezzo, double latitudine, double longitudine) {
         this.nome = nome;
         this.numMaxPartecipanti = numMaxPartecipanti;
@@ -55,7 +55,7 @@ public class Evento {
     private String note;
 
     //@Column(name="tipo_evento")
-    @ManyToOne()
+    @ManyToOne(cascade = {CascadeType.ALL})
     private TipoEvento tipoEvento;
 
     @Column(name="data")
@@ -64,9 +64,8 @@ public class Evento {
     @Column(name="proprietario")
     private long proprietario;
 
-    @ManyToOne
-    @JoinColumn(name = "comune")
-    private Comune comune;
+    @Column(name = "comune")
+    private long comune;
 
     @Column(name = "indirizzo")
     private String indirizzo;
@@ -175,14 +174,6 @@ public class Evento {
         this.proprietario = proprietario;
     }
 
-    public Comune getComune() {
-        return comune;
-    }
-
-    public void setComune(Comune comune) {
-        this.comune = comune;
-    }
-
     public String getIndirizzo() {
         return indirizzo;
     }
@@ -217,5 +208,13 @@ public class Evento {
 
     public Long castLongObject(){
         return id;
+    }
+
+    public long getComune() {
+        return comune;
+    }
+
+    public void setComune(long comune) {
+        this.comune = comune;
     }
 }
