@@ -194,9 +194,15 @@ public class EventoController {
 
     @PostMapping("/iscrivi")
     public ResponseEntity<Evento> iscrivi(@RequestBody IscriviEvento iscriviEvento){
-        System.out.println("# iscrivi: Ho ricevuto: evento = " + iscriviEvento.getEvento().getId() + "; utente = " + iscriviEvento.getUtente());
-        iscriviEvento.getEvento().getIscritti().add(iscriviEvento.getUtente());
-        return new ResponseEntity<>(eventoRepository.save(iscriviEvento.getEvento()), HttpStatus.OK);
+        System.out.println("# iscrivi: Ho ricevuto: evento = " + iscriviEvento.getEvento() + "; utente = " + iscriviEvento.getUtente());
+        Optional<Evento> evento = eventoRepository.findById(iscriviEvento.getEvento());
+        try {
+            evento.get().getIscritti().add(iscriviEvento.getUtente());
+        }catch (Exception exception){
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        }
+
+        return new ResponseEntity<>(eventoRepository.save(evento.get()), HttpStatus.OK);
         //return new ResponseEntity<>("Utente <" + iscriviEvento.getUtente() + "> iscritto all'evento " + iscriviEvento.getEvento().getId(), HttpStatus.OK);
     }
 

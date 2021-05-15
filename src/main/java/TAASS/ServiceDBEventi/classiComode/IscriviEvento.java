@@ -10,19 +10,19 @@ public class IscriviEvento {
     due informazioni insieme
      */
 
-    private Evento evento;
+    private long evento;
     private long utente;
 
-    public IscriviEvento(Evento evento, long utente) {
+    public IscriviEvento(long evento, long utente) {
         this.evento = evento;
         this.utente = utente;
     }
 
-    public Evento getEvento() {
+    public long getEvento() {
         return evento;
     }
 
-    public void setEvento(Evento evento) {
+    public void setEvento(long evento) {
         this.evento = evento;
     }
 
