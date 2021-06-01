@@ -3,17 +3,16 @@ package TAASS.ServiceDBEventi.controllers;
 import TAASS.ServiceDBEventi.classiComode.IscriviEvento;
 import TAASS.ServiceDBEventi.exception.MyCustomException;
 import TAASS.ServiceDBEventi.models.Evento;
+import TAASS.ServiceDBEventi.rabbitMQ.DTO.Utente;
+import TAASS.ServiceDBEventi.rabbitMQ.ListenerService;
+import TAASS.ServiceDBEventi.rabbitMQ.PublishService;
 import TAASS.ServiceDBEventi.repositories.EventoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @RestController
@@ -23,6 +22,10 @@ public class EventoController {
 
     @Autowired
     private EventoRepository eventoRepository;
+    @Autowired
+    private ListenerService listenerService;
+    @Autowired
+    private PublishService publishService;
 
     @GetMapping
     public List<Evento> getAllEventi(HttpServletRequest requestHeader){
@@ -41,7 +44,12 @@ public class EventoController {
         }else{
             throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
         }*/
+
+
+
+        /*
         //Auth: solo admin
+
         if(!requestHeader.getHeader("x-auth-user-role").equals("ROLE_ADMIN")){
             //Solo un admin può guardare tutti gli eventi di tutti, anche quelli scaduti
             throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
@@ -49,6 +57,13 @@ public class EventoController {
 
         List<Evento> eventi = new ArrayList<>();
         eventoRepository.findAll().forEach(eventi::add);
+        */
+
+        Utente utente = ottieniUtente(Long.parseLong(requestHeader.getHeader("X-auth-user-id")));
+        System.out.println("UTENTE " + utente.getNome() + " " + utente.getCognome());
+
+
+        List<Evento> eventi = new ArrayList<>();
         return eventi;
     }
 
@@ -349,6 +364,17 @@ public class EventoController {
         Date date = calendar.getTime();
         System.out.println("#\tdata: " + date);
         return date;
+    }
+
+    private Utente ottieniUtente(long id) {
+        publishService.requestUser(id);
+
+        HashMap<Long, Utente> utente = ListenerService.utente;
+        while(!utente.containsKey(id)) {
+           utente = ListenerService.utente;
+        }
+        return utente.get(id);
+
     }
 
 }
