@@ -29,42 +29,13 @@ public class EventoController {
 
     @GetMapping
     public List<Evento> getAllEventi(HttpServletRequest requestHeader){
-        /*System.out.println("**************************************************************************************************************");
 
-        Enumeration headerNames = requestHeader.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            String key = (String) headerNames.nextElement();
-            String value = requestHeader.getHeader(key);
-            System.out.println("HEADER: " + key +" " + value);
-        }*/
-
-
-        /*if(requestHeader.getHeader("x-auth-user-role").equals("ROLE_ADMIN")){
-            System.out.println("Sei autorizzato ad accedere a questo metodo");
-        }else{
-            throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
-        }*/
-
-
-
-        /*
-        //Auth: solo admin
-
-        if(!requestHeader.getHeader("x-auth-user-role").equals("ROLE_ADMIN")){
-            //Solo un admin può guardare tutti gli eventi di tutti, anche quelli scaduti
+        //AUTH: admin
+        if(!(requestHeader.getHeader("X-auth-user-role").equals("ROLE_ADMIN"))){
             throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
         }
-
-        List<Evento> eventi = new ArrayList<>();
-        eventoRepository.findAll().forEach(eventi::add);
-        */
-
-        Utente utente = ottieniUtente(Long.parseLong(requestHeader.getHeader("X-auth-user-id")));
-        System.out.println("UTENTE " + utente.getNome() + " " + utente.getCognome());
-
-
-        List<Evento> eventi = new ArrayList<>();
-        return eventi;
+        //List<Evento> eventi = new ArrayList<>();
+        return eventoRepository.findAll();
     }
 
     @GetMapping("/non-scaduti")
@@ -150,6 +121,7 @@ public class EventoController {
     @GetMapping("/iscritti-evento/{id}")
     public HashSet<Long> iscrittiEvento(@PathVariable long id,HttpServletRequest requestHeader){
         //Auth: Admin, sindaco del comune dell'evento e pubblicatore dell'evento
+        Optional<Evento> iscritti = eventoRepository.findById(id);
         switch (requestHeader.getHeader("x-auth-user-role")){
             case "ROLE_ADMIN":{
                 //può accedere
@@ -161,17 +133,25 @@ public class EventoController {
             }
             case "ROLE_MAYOR":{
                 //può accedere solo se l'evento è del comune del sindaco
+                long idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
+                if(idComuneDipendente != iscritti.get().getComune()){
+                    throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+                }
                 break;
             }
             case "ROLE_PUBLISHER":{
                 //può accedere solo se è il publisher dello stesso evento
+                long idProprietario = Long.parseLong(requestHeader.getHeader("X-auth-user-id"));
+                if(idProprietario != iscritti.get().getProprietario()){
+                    throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+                }
                 break;
             }
             default:{
                 throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
             }
         }
-        Optional<Evento> iscritti = eventoRepository.findById(id);
+
         if(iscritti.isPresent()){
             return (HashSet<Long>) iscritti.get().getIscritti();
         }else{
@@ -181,9 +161,31 @@ public class EventoController {
     }
 
     @GetMapping("/eventi-comune/{comune}")
-    public List<Evento> eventiDelComune(@PathVariable long comune){
+    public List<Evento> eventiDelComune(@PathVariable long comune, HttpServletRequest requestHeader){
         //permette di vedere anche gli eventi scaduti
         //Auth: sindaco e anche publisher
+        long idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
+        switch (requestHeader.getHeader("x-auth-user-role")){
+            case "ROLE_ADMIN":{
+                //può accedere
+                break;
+            }
+            case "ROLE_CLIENT":{
+                //non può accedere a questo
+                throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+            }
+            case "ROLE_MAYOR":  //che sia un sindaco o un pubblicatore allora controllo che lavorino nel comune indicato
+            case "ROLE_PUBLISHER":{
+                //può accedere solo se è il publisher dello stesso evento
+                if(idComuneDipendente != comune){
+                    throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+                }
+                break;
+            }
+            default:{
+                throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+            }
+        }
 
         System.out.println("# richiesta di tutti gli eventi del comune: " + comune);
         List<Evento> eventi = eventoRepository.findByComune(comune);
@@ -251,23 +253,56 @@ public class EventoController {
     }
 
     @DeleteMapping("/deleteById/{eventoID}")
-    public ResponseEntity<Map<String, String>> eliminaEventoID(@PathVariable long eventoID/*@PathVariable long  id*/){
+    public ResponseEntity<String> eliminaEventoID(@PathVariable long eventoID, HttpServletRequest requestHeader){
         //Admin: sindaco del comune dell'evento e pubblicatore dell'evento
-        Map<String, String> response = new HashMap<String, String>();
-        if(trovaPerID(eventoID) != null){
-            eventoRepository.deleteById(eventoID);
-            response.put("messaggio", "Eliminazione avvenuta con successo");
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        }else{
-            response.put("messaggio", "Non esiste l'evento che si desidera eliminare");
-            return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        Optional<Evento> eventoOPT = eventoRepository.findById(eventoID);
+        if(!eventoOPT.isPresent()){
+            return new ResponseEntity<>("Non esiste un evento con id = " + eventoID, HttpStatus.NOT_FOUND);
         }
+        Evento evento = eventoOPT.get();
+        long proprietarioID = Long.parseLong(requestHeader.getHeader("x-auth-user-id"));
+        long idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
+
+        switch (requestHeader.getHeader("x-auth-user-role")){
+            case "ROLE_ADMIN":{
+                //può accedere
+                break;
+            }
+            case "ROLE_CLIENT":{
+                //non può accedere a questo
+                throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+            }
+            case "ROLE_MAYOR":{
+                if(idComuneDipendente != evento.getComune()){
+                    throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+                }
+                break;
+            }
+            case "ROLE_PUBLISHER":{
+                //può accedere solo se è il publisher dello stesso evento
+                if(proprietarioID != evento.getProprietario()){
+                    throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+                }
+                break;
+            }
+            default:{
+                throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+            }
+        }
+        return new ResponseEntity<>("Evento con id = " + eventoID + " eliminato", HttpStatus.OK);
     }
 
     @PostMapping
-    public Evento addEvento(@RequestBody Evento evento){
-        //Auth: admin, sindaco e publisher del comune
-        //@DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    public Evento addEvento(@RequestBody Evento evento, HttpServletRequest requestHeader){
+        //AUTH: admin e sindaci/publisher che lavorano nel comune indicato nell'evento
+        if(requestHeader.getHeader("x-auth-user-role").equals("ROLE_CLIENT")){
+            throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+        }
+        if( (requestHeader.getHeader("x-auth-user-role").equals("ROLE_MAYOR") || requestHeader.getHeader("x-auth-user-role").equals("ROLE_PUBLISHER"))
+            && Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id")) != evento.getComune()){
+            throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+        }
+
         System.out.println("# Aggiungi evento");
         System.out.println("#\taddEvento: aggiungo evento: " + evento);
         System.out.println("#\taddEvento: tipo evento: " + evento.getTipoEvento().getId() + " = " + evento.getTipoEvento().getNome());
@@ -282,6 +317,7 @@ public class EventoController {
     @PostMapping("/iscrivi")
     public ResponseEntity<Evento> iscrivi(@RequestBody IscriviEvento iscriviEvento){
         //Auth: utente con id = utenteid
+        //TODO: finiscilo
         System.out.println("# iscrivi: Ho ricevuto: evento = " + iscriviEvento.getEvento() + "; utente = " + iscriviEvento.getUtente());
         Optional<Evento> evento = eventoRepository.findById(iscriviEvento.getEvento());
         try {
@@ -296,8 +332,20 @@ public class EventoController {
 
     //TODO: verificare se si può creare in maniera più "bella"
     @PutMapping("/aggiorna/{id}")
-    public ResponseEntity<Evento> aggiornaEvento(@PathVariable("id") long id, @RequestBody Evento evento){
+    public ResponseEntity<Evento> aggiornaEvento(@PathVariable("id") long id, @RequestBody Evento evento, HttpServletRequest requestHeader){
         //Auth: admin, sindaco del comune, publisher proprietario
+        if(requestHeader.getHeader("x-auth-user-role").equals("ROLE_CLIENT")){
+            throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+        }
+        if( (requestHeader.getHeader("x-auth-user-role").equals("ROLE_MAYOR"))
+                && Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id")) != evento.getComune()){
+            throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+        }
+        if(requestHeader.getHeader("x-auth-user-role").equals("ROLE_PUBLISHER") &&
+                Long.parseLong(requestHeader.getHeader("x-auth-user-id")) != evento.getProprietario()){
+            throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+        }
+
         System.out.println("# aggiornaEvento: ricevuto id = " + id);
         Optional<Evento> datiEvento = eventoRepository.findById(id);
 
@@ -325,7 +373,7 @@ public class EventoController {
         }
     }
 
-    //TODO: cancellare
+    /*//TODO: cancellare
     @PostMapping("/prenota")
     public ResponseEntity<Map<String, String>> prenotaEvento(@RequestBody Map<String, Long> body){
         //verifico che ci siano ancora posti disponibili
@@ -357,7 +405,7 @@ public class EventoController {
         message = "Iscrizione completata!";
         response.put("messaggio", message);
         return new ResponseEntity<Map<String,String>>(response, HttpStatus.OK);
-    }
+    }*/
 
     private Date ottieniData(){
         Calendar calendar = Calendar.getInstance();
