@@ -14,14 +14,8 @@ public class RabbitMQConfig {
 
     @Bean
     Queue requestUserGateway() {
-        return new Queue("requestUserGateway");
+        return new Queue("eventSubscriptionRequest");
     }
-
-    @Bean
-    Queue publishUserGateway() {
-        return new Queue("publishUserGateway");
-    }
-
 
     @Bean
     MessageConverter messageConverter() {

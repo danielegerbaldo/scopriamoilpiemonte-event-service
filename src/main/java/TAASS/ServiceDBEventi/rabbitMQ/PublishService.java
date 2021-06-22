@@ -14,8 +14,11 @@ public class PublishService {
     }
 
 
-    public void requestUser(long userId) {
-        rabbitTemplate.convertAndSend("requestUserEvent",
-                new UserMessage(userId,null));
+    public void publishSubscriptionUser(long userId, long eventId, boolean isSubscription) {
+
+        System.out.println("RABBITMQ SENT: " + " UserId: " + userId + " EventId: " +eventId + " isSubscription: " + isSubscription);
+
+        rabbitTemplate.convertAndSend("eventSubscriptionRequest",
+                new UserMessage(userId,eventId,isSubscription));
     }
 }

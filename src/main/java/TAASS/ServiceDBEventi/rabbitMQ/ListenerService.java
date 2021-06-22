@@ -2,7 +2,6 @@ package TAASS.ServiceDBEventi.rabbitMQ;
 
 
 import TAASS.ServiceDBEventi.rabbitMQ.DTO.UserMessage;
-import TAASS.ServiceDBEventi.rabbitMQ.DTO.Utente;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -13,7 +12,7 @@ import java.util.HashMap;
 @Service
 public class ListenerService {
 
-    public static final Logger logger = LoggerFactory.getLogger(ListenerService.class);
+    /*public static final Logger logger = LoggerFactory.getLogger(ListenerService.class);
     public static HashMap<Long,Utente> utente = new HashMap<Long,Utente>();
 
     @RabbitListener(queues = "publishUserEvent")
@@ -22,5 +21,5 @@ public class ListenerService {
         logger.info("From Queue : {}", message);
 
         utente.put(message.getUserId(),message.getBody());
-    }
+    }*/
 }

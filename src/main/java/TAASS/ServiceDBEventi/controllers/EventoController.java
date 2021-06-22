@@ -3,7 +3,6 @@ package TAASS.ServiceDBEventi.controllers;
 import TAASS.ServiceDBEventi.classiComode.IscriviEvento;
 import TAASS.ServiceDBEventi.exception.MyCustomException;
 import TAASS.ServiceDBEventi.models.Evento;
-import TAASS.ServiceDBEventi.rabbitMQ.DTO.Utente;
 import TAASS.ServiceDBEventi.rabbitMQ.ListenerService;
 import TAASS.ServiceDBEventi.rabbitMQ.PublishService;
 import TAASS.ServiceDBEventi.repositories.EventoRepository;
@@ -26,6 +25,7 @@ public class EventoController {
     private ListenerService listenerService;
     @Autowired
     private PublishService publishService;
+
 
     @GetMapping
     public List<Evento> getAllEventi(HttpServletRequest requestHeader){
@@ -233,6 +233,10 @@ public class EventoController {
             evento.getIscritti().remove(utenteID);
             evento.setPartecipanti(evento.getPartecipanti() - 1);
             eventoRepository.save(evento);
+
+            //Send unsubscribe event on RabbitMQ queue
+            publishService.publishSubscriptionUser(utenteID,evento.getId(),false);
+
             response.put("messaggio", "Utente <" + utenteID + "> disiscritto dall'evento " + evento.getId());
             return new ResponseEntity<>(response, HttpStatus.OK);
         }else{
@@ -322,6 +326,8 @@ public class EventoController {
         Optional<Evento> evento = eventoRepository.findById(iscriviEvento.getEvento());
         try {
             evento.get().getIscritti().add(iscriviEvento.getUtente());
+            //Senate subscription event on RabbitMQ queue
+            publishService.publishSubscriptionUser(iscriviEvento.getUtente(),evento.get().getId(),true);
         }catch (Exception exception){
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
         }
@@ -414,15 +420,5 @@ public class EventoController {
         return date;
     }
 
-    private Utente ottieniUtente(long id) {
-        publishService.requestUser(id);
-
-        HashMap<Long, Utente> utente = ListenerService.utente;
-        while(!utente.containsKey(id)) {
-           utente = ListenerService.utente;
-        }
-        return utente.get(id);
-
-    }
 
 }

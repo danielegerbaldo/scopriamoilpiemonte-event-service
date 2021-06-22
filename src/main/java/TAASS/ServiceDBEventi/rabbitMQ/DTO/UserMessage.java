@@ -13,5 +13,6 @@ import java.io.Serializable;
 @ToString
 public class UserMessage implements Serializable {
     long userId;
-    Utente body;
+    long eventId;
+    boolean isSubscription;
 }
