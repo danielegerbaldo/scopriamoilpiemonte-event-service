@@ -260,6 +260,8 @@ public class EventoController {
     public ResponseEntity<String> eliminaEventoID(@PathVariable long eventoID, HttpServletRequest requestHeader){
         //Admin: sindaco del comune dell'evento e pubblicatore dell'evento
         Optional<Evento> eventoOPT = eventoRepository.findById(eventoID);
+        ResponseEntity<String> response;
+
         if(!eventoOPT.isPresent()){
             return new ResponseEntity<>("Non esiste un evento con id = " + eventoID, HttpStatus.NOT_FOUND);
         }
@@ -270,6 +272,8 @@ public class EventoController {
         switch (requestHeader.getHeader("x-auth-user-role")){
             case "ROLE_ADMIN":{
                 //può accedere
+                eventoRepository.deleteById(eventoID);
+                response= new ResponseEntity<>("Evento con id = " + eventoID + " eliminato", HttpStatus.OK);
                 break;
             }
             case "ROLE_CLIENT":{
@@ -279,6 +283,9 @@ public class EventoController {
             case "ROLE_MAYOR":{
                 if(idComuneDipendente != evento.getComune()){
                     throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+                }else{
+                    eventoRepository.deleteById(eventoID);
+                    response = new ResponseEntity<>("Evento con id = " + eventoID + " eliminato", HttpStatus.OK);
                 }
                 break;
             }
@@ -286,6 +293,9 @@ public class EventoController {
                 //può accedere solo se è il publisher dello stesso evento
                 if(proprietarioID != evento.getProprietario()){
                     throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+                }else{
+                    eventoRepository.deleteById(eventoID);
+                    response = new ResponseEntity<>("Evento con id = " + eventoID + " eliminato", HttpStatus.OK);
                 }
                 break;
             }
@@ -293,7 +303,7 @@ public class EventoController {
                 throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
             }
         }
-        return new ResponseEntity<>("Evento con id = " + eventoID + " eliminato", HttpStatus.OK);
+        return response;
     }
 
     @PostMapping
