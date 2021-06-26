@@ -336,7 +336,8 @@ public class EventoController {
         Optional<Evento> evento = eventoRepository.findById(iscriviEvento.getEvento());
         try {
             evento.get().getIscritti().add(iscriviEvento.getUtente());
-            //Senate subscription event on RabbitMQ queue
+            evento.get().setPartecipanti(evento.get().getPartecipanti()+1);
+            //Send subscription event on RabbitMQ queue
             publishService.publishSubscriptionUser(iscriviEvento.getUtente(),evento.get().getId(),true);
         }catch (Exception exception){
             return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
