@@ -104,12 +104,27 @@ public class EventoController {
     }
 
     @GetMapping("/info-evento/{id}")
-    public Evento trovaPerID(@PathVariable long id){
+    public Evento trovaPerID(@PathVariable long id, HttpServletRequest requestHeader){
         //Auth: tutti
         System.out.println("# trovaPerID: id = " + id);
         Optional<Evento> evento = eventoRepository.findById(id);
         if(evento.isPresent()){
             System.out.println("#\ttrovaPerID: esiste evento " + id);
+            //verificare l'autorizzazione dell'utente
+            String auth = requestHeader.getHeader("x-auth-user-role");
+            long utenteID = Integer.parseInt(requestHeader.getHeader("x-auth-user-id"));
+            long idComuneDipendente = -1;
+            if(requestHeader.getHeader("X-auth-user-comune-dipendente-id") != null){
+                idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
+            }
+
+            if(auth.equals("ROLE_CLIENT")
+                    || (auth.equals("ROLE_PUBLISHER")&& evento.get().getProprietario() != utenteID )
+                    || (auth.equals("ROLE_MAYOR") && evento.get().getComune() != idComuneDipendente) ){
+                //se l'utente loggato è un cliente o non è sindaco del comune dell'evento o non è proprietario dell'evento
+                //non deve poter vedere l'elenco degli ID degli utenti iscritti al comune
+                evento.get().setIscritti(new HashSet<>());
+            }
             return evento.get();
         }else{
             System.out.println("#\ttrovaPerID: NON esiste evento " + id);
@@ -223,7 +238,7 @@ public class EventoController {
     @PostMapping("/disiscrivi")
     public ResponseEntity<Map<String,String>> disiscrivi(@RequestBody Map<String,Long> body, HttpServletRequest requestHeader){
         //Auth: utente con id = utenteID
-        Evento evento = trovaPerID(body.get("evento_id"));
+        Evento evento = trovaPerID(body.get("evento_id"), requestHeader);
         long utenteID = body.get("utente_id");
         if(Integer.parseInt(requestHeader.getHeader("x-auth-user-id")) != utenteID){
             throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
