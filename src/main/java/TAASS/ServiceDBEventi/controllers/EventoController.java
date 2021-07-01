@@ -179,7 +179,7 @@ public class EventoController {
     public List<Evento> eventiDelComune(@PathVariable long comune, HttpServletRequest requestHeader){
         //permette di vedere anche gli eventi scaduti
         //Auth: sindaco e anche publisher
-        long idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
+
         switch (requestHeader.getHeader("x-auth-user-role")){
             case "ROLE_ADMIN":{
                 //può accedere
@@ -192,6 +192,7 @@ public class EventoController {
             case "ROLE_MAYOR":  //che sia un sindaco o un pubblicatore allora controllo che lavorino nel comune indicato
             case "ROLE_PUBLISHER":{
                 //può accedere solo se è il publisher dello stesso evento
+                long idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
                 if(idComuneDipendente != comune){
                     throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
                 }
@@ -282,7 +283,6 @@ public class EventoController {
         }
         Evento evento = eventoOPT.get();
         long proprietarioID = Long.parseLong(requestHeader.getHeader("x-auth-user-id"));
-        long idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
 
         switch (requestHeader.getHeader("x-auth-user-role")){
             case "ROLE_ADMIN":{
@@ -296,6 +296,7 @@ public class EventoController {
                 throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
             }
             case "ROLE_MAYOR":{
+                long idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
                 if(idComuneDipendente != evento.getComune()){
                     throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
                 }else{
@@ -405,39 +406,6 @@ public class EventoController {
         }
     }
 
-    /*//TODO: cancellare
-    @PostMapping("/prenota")
-    public ResponseEntity<Map<String, String>> prenotaEvento(@RequestBody Map<String, Long> body){
-        //verifico che ci siano ancora posti disponibili
-        long eventoID = body.get("evento_id");
-        long utenteID = body.get("utente_id");
-        System.out.println("# richiesta iscrizione da: <" + utenteID + "> per <" + eventoID + ">");
-        Evento evento = trovaPerID(eventoID);
-        String message;
-        Map<String,String> response = new HashMap<>();
-        if(evento.getPartecipanti() >= evento.getNumMaxPartecipanti()){
-            System.out.println("#\trichiesta iscrizione: posti esauriti");
-            message = "Non ci sono più posti disponibili";
-            response.put("messaggio", message);
-            return new ResponseEntity<Map<String,String>>(response, HttpStatus.CONFLICT);
-        }
-        //controllo che non si sia già iscritto
-        boolean daIscrivere = eventoRepository.findOccorrenzeIscrizioniUtenteStessoEvento(utenteID, eventoID) == 0;
-        if(! daIscrivere){
-            System.out.println("#\trichiesta iscrizione: già iscritto");
-            message = "Risulti già iscritto a questo evento!";
-            response.put("messaggio", message);
-            return new ResponseEntity<Map<String,String>>(response, HttpStatus.CONFLICT);
-        }
-        //aggiungo l'iscrizione e incremento di 1 il valore degli iscritti
-        evento.setPartecipanti(evento.getPartecipanti() + 1);
-        evento.getIscritti().add(utenteID);
-        aggiornaEvento(eventoID, evento);
-        System.out.println("#\trichiesta iscrizione: iscrizione avvenuta");
-        message = "Iscrizione completata!";
-        response.put("messaggio", message);
-        return new ResponseEntity<Map<String,String>>(response, HttpStatus.OK);
-    }*/
 
     private Date ottieniData(){
         Calendar calendar = Calendar.getInstance();
