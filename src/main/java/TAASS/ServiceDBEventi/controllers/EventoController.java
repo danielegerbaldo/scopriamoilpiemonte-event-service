@@ -221,26 +221,33 @@ public class EventoController {
     }
 
     @PostMapping("/disiscrivi")
-    public ResponseEntity<Map<String,String>> disiscrivi(@RequestBody Map<String,Long> body, HttpServletRequest requestHeader){
+    public ResponseEntity<Map<String,String>> disiscrivi(@RequestParam long idUtente, @RequestParam long idEvento, HttpServletRequest requestHeader){
+
+
+        if(!eventoRepository.findById(idEvento).isPresent()){
+            throw new MyCustomException("NOT FOUND", HttpStatus.NOT_FOUND);
+        }
+
+        Evento evento = eventoRepository.findById(idEvento).get();
+
         //Auth: utente con id = utenteID
-        Evento evento = trovaPerID(body.get("evento_id"));
-        long utenteID = body.get("utente_id");
-        if(Integer.parseInt(requestHeader.getHeader("x-auth-user-id")) != utenteID){
+        if((Integer.parseInt(requestHeader.getHeader("x-auth-user-id")) != idUtente || !requestHeader.getHeader("x-auth-user-role").equals("ROLE_ADMIN"))){
             throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
         }
+
         Map<String,String> response = new HashMap<>();
-        if(evento.getIscritti().contains(utenteID)){
-            evento.getIscritti().remove(utenteID);
+        if(evento.getIscritti().contains(idUtente)){
+            evento.getIscritti().remove(idUtente);
             evento.setPartecipanti(evento.getPartecipanti() - 1);
             eventoRepository.save(evento);
 
             //Send unsubscribe event on RabbitMQ queue
-            publishService.publishSubscriptionUser(utenteID,evento.getId(),false);
+            publishService.publishSubscriptionUser(idUtente,evento.getId(),false);
 
-            response.put("messaggio", "Utente <" + utenteID + "> disiscritto dall'evento " + evento.getId());
+            response.put("messaggio", "Utente <" + idUtente + "> disiscritto dall'evento " + evento.getId());
             return new ResponseEntity<>(response, HttpStatus.OK);
         }else{
-            response.put("messaggio", "Utente <" + utenteID + "> non risulta iscritto all evento:  " + evento.getId());
+            response.put("messaggio", "Utente <" + idUtente + "> non risulta iscritto all evento:  " + evento.getId());
             return new ResponseEntity<>(response,  HttpStatus.NO_CONTENT);
         }
     }
