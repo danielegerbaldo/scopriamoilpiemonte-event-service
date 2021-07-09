@@ -61,12 +61,13 @@ public class EventoController {
     public List<Evento> getEventiUtenteNonIscrittoNonscaduti(HttpServletRequest requestHeader, @PathVariable long utenteID ){
         //Auth: solo l'utente con id = utenteID
         if(Integer.parseInt(requestHeader.getHeader("x-auth-user-id")) != utenteID){
+            System.out.println("utenteID = " + utenteID + "; x-auth-user-id = " + Integer.parseInt(requestHeader.getHeader("x-auth-user-id")));
             throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
         }
         System.out.println("# getEventiUtenteNonIscritto: uid: " + utenteID);
         //start debug
         //stampa tutti gli iscritti a tutti gli eventi
-        List<Evento> tuttiEventi = getAllEventi(requestHeader);
+        /*List<Evento> tuttiEventi = getAllEventi(requestHeader);
         System.out.println("#\tlista iscrizioni eventi");
         for(int i = 0; i < tuttiEventi.size(); i++){
             System.out.println("#\t\tevento: " + tuttiEventi.get(i).getId() + ", nome = " + tuttiEventi.get(i).getNome());
@@ -74,13 +75,13 @@ public class EventoController {
             for(int j = 0; j < iscritti.size(); j++ ){
                 System.out.println("#\t\t\t-" +  iscritti.get(j));
             }
-        }
+        }*/
         //stampa tutti gli eventi a cui non sono iscritto
-        List<Evento> eventiNonIscritto = eventoRepository.findEventiUtenteNonIscritto(utenteID);
+        /*List<Evento> eventiNonIscritto = eventoRepository.findEventiUtenteNonIscritto(utenteID);
         System.out.println("#\tlista non iscritto");
         for(int i = 0; i < eventiNonIscritto.size(); i++){
             System.out.println("#\t\t" + eventiNonIscritto.get(i).getId() + ", " + eventiNonIscritto.get(i).getNome());
-        }
+        }*/
         //stop debug
         List<Evento> eventi = eventoRepository.findEventiUtenteNonIscrittoNonScaduti(utenteID, ottieniData() );
         System.out.println("# getEventiUtenteNonIscritto: size: " + eventi.size());
@@ -104,12 +105,27 @@ public class EventoController {
     }
 
     @GetMapping("/info-evento/{id}")
-    public Evento trovaPerID(@PathVariable long id){
+    public Evento trovaPerID(@PathVariable long id, HttpServletRequest requestHeader){
         //Auth: tutti
         System.out.println("# trovaPerID: id = " + id);
         Optional<Evento> evento = eventoRepository.findById(id);
         if(evento.isPresent()){
             System.out.println("#\ttrovaPerID: esiste evento " + id);
+            //verificare l'autorizzazione dell'utente
+            String auth = requestHeader.getHeader("x-auth-user-role");
+            long utenteID = Integer.parseInt(requestHeader.getHeader("x-auth-user-id"));
+            long idComuneDipendente = -1;
+            if(requestHeader.getHeader("X-auth-user-comune-dipendente-id") != null){
+                idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
+            }
+
+            if(auth.equals("ROLE_CLIENT")
+                    || (auth.equals("ROLE_PUBLISHER")&& evento.get().getProprietario() != utenteID )
+                    || (auth.equals("ROLE_MAYOR") && evento.get().getComune() != idComuneDipendente) ){
+                //se l'utente loggato è un cliente o non è sindaco del comune dell'evento o non è proprietario dell'evento
+                //non deve poter vedere l'elenco degli ID degli utenti iscritti al comune
+                evento.get().setIscritti(new HashSet<>());
+            }
             return evento.get();
         }else{
             System.out.println("#\ttrovaPerID: NON esiste evento " + id);
@@ -164,7 +180,7 @@ public class EventoController {
     public List<Evento> eventiDelComune(@PathVariable long comune, HttpServletRequest requestHeader){
         //permette di vedere anche gli eventi scaduti
         //Auth: sindaco e anche publisher
-        long idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
+
         switch (requestHeader.getHeader("x-auth-user-role")){
             case "ROLE_ADMIN":{
                 //può accedere
@@ -177,6 +193,7 @@ public class EventoController {
             case "ROLE_MAYOR":  //che sia un sindaco o un pubblicatore allora controllo che lavorino nel comune indicato
             case "ROLE_PUBLISHER":{
                 //può accedere solo se è il publisher dello stesso evento
+                long idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
                 if(idComuneDipendente != comune){
                     throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
                 }
@@ -280,6 +297,8 @@ public class EventoController {
             case "ROLE_ADMIN":{
                 //può accedere
                 eventoRepository.deleteById(eventoID);
+                System.out.println("Cancellato evento id = " + eventoID);
+
                 response= new ResponseEntity<>("Evento con id = " + eventoID + " eliminato", HttpStatus.OK);
                 break;
             }
@@ -288,10 +307,12 @@ public class EventoController {
                 throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
             }
             case "ROLE_MAYOR":{
+                long idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
                 if(idComuneDipendente != evento.getComune()){
                     throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
                 }else{
                     eventoRepository.deleteById(eventoID);
+                    System.out.println("Cancellato evento id = " + eventoID);
                     response = new ResponseEntity<>("Evento con id = " + eventoID + " eliminato", HttpStatus.OK);
                 }
                 break;
@@ -302,6 +323,8 @@ public class EventoController {
                     throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
                 }else{
                     eventoRepository.deleteById(eventoID);
+                    System.out.println("Cancellato evento id = " + eventoID);
+
                     response = new ResponseEntity<>("Evento con id = " + eventoID + " eliminato", HttpStatus.OK);
                 }
                 break;
@@ -310,6 +333,7 @@ public class EventoController {
                 throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
             }
         }
+        System.out.println("Cancella evento response = " + response.toString());
         return response;
     }
 
@@ -397,39 +421,6 @@ public class EventoController {
         }
     }
 
-    /*//TODO: cancellare
-    @PostMapping("/prenota")
-    public ResponseEntity<Map<String, String>> prenotaEvento(@RequestBody Map<String, Long> body){
-        //verifico che ci siano ancora posti disponibili
-        long eventoID = body.get("evento_id");
-        long utenteID = body.get("utente_id");
-        System.out.println("# richiesta iscrizione da: <" + utenteID + "> per <" + eventoID + ">");
-        Evento evento = trovaPerID(eventoID);
-        String message;
-        Map<String,String> response = new HashMap<>();
-        if(evento.getPartecipanti() >= evento.getNumMaxPartecipanti()){
-            System.out.println("#\trichiesta iscrizione: posti esauriti");
-            message = "Non ci sono più posti disponibili";
-            response.put("messaggio", message);
-            return new ResponseEntity<Map<String,String>>(response, HttpStatus.CONFLICT);
-        }
-        //controllo che non si sia già iscritto
-        boolean daIscrivere = eventoRepository.findOccorrenzeIscrizioniUtenteStessoEvento(utenteID, eventoID) == 0;
-        if(! daIscrivere){
-            System.out.println("#\trichiesta iscrizione: già iscritto");
-            message = "Risulti già iscritto a questo evento!";
-            response.put("messaggio", message);
-            return new ResponseEntity<Map<String,String>>(response, HttpStatus.CONFLICT);
-        }
-        //aggiungo l'iscrizione e incremento di 1 il valore degli iscritti
-        evento.setPartecipanti(evento.getPartecipanti() + 1);
-        evento.getIscritti().add(utenteID);
-        aggiornaEvento(eventoID, evento);
-        System.out.println("#\trichiesta iscrizione: iscrizione avvenuta");
-        message = "Iscrizione completata!";
-        response.put("messaggio", message);
-        return new ResponseEntity<Map<String,String>>(response, HttpStatus.OK);
-    }*/
 
     private Date ottieniData(){
         Calendar calendar = Calendar.getInstance();
