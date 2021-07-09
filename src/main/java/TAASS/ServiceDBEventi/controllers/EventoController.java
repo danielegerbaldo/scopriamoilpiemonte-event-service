@@ -61,12 +61,13 @@ public class EventoController {
     public List<Evento> getEventiUtenteNonIscrittoNonscaduti(HttpServletRequest requestHeader, @PathVariable long utenteID ){
         //Auth: solo l'utente con id = utenteID
         if(Integer.parseInt(requestHeader.getHeader("x-auth-user-id")) != utenteID){
+            System.out.println("utenteID = " + utenteID + "; x-auth-user-id = " + Integer.parseInt(requestHeader.getHeader("x-auth-user-id")));
             throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
         }
         System.out.println("# getEventiUtenteNonIscritto: uid: " + utenteID);
         //start debug
         //stampa tutti gli iscritti a tutti gli eventi
-        List<Evento> tuttiEventi = getAllEventi(requestHeader);
+        /*List<Evento> tuttiEventi = getAllEventi(requestHeader);
         System.out.println("#\tlista iscrizioni eventi");
         for(int i = 0; i < tuttiEventi.size(); i++){
             System.out.println("#\t\tevento: " + tuttiEventi.get(i).getId() + ", nome = " + tuttiEventi.get(i).getNome());
@@ -74,13 +75,13 @@ public class EventoController {
             for(int j = 0; j < iscritti.size(); j++ ){
                 System.out.println("#\t\t\t-" +  iscritti.get(j));
             }
-        }
+        }*/
         //stampa tutti gli eventi a cui non sono iscritto
-        List<Evento> eventiNonIscritto = eventoRepository.findEventiUtenteNonIscritto(utenteID);
+        /*List<Evento> eventiNonIscritto = eventoRepository.findEventiUtenteNonIscritto(utenteID);
         System.out.println("#\tlista non iscritto");
         for(int i = 0; i < eventiNonIscritto.size(); i++){
             System.out.println("#\t\t" + eventiNonIscritto.get(i).getId() + ", " + eventiNonIscritto.get(i).getNome());
-        }
+        }*/
         //stop debug
         List<Evento> eventi = eventoRepository.findEventiUtenteNonIscrittoNonScaduti(utenteID, ottieniData() );
         System.out.println("# getEventiUtenteNonIscritto: size: " + eventi.size());
@@ -288,6 +289,8 @@ public class EventoController {
             case "ROLE_ADMIN":{
                 //può accedere
                 eventoRepository.deleteById(eventoID);
+                System.out.println("Cancellato evento id = " + eventoID);
+
                 response= new ResponseEntity<>("Evento con id = " + eventoID + " eliminato", HttpStatus.OK);
                 break;
             }
@@ -301,6 +304,7 @@ public class EventoController {
                     throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
                 }else{
                     eventoRepository.deleteById(eventoID);
+                    System.out.println("Cancellato evento id = " + eventoID);
                     response = new ResponseEntity<>("Evento con id = " + eventoID + " eliminato", HttpStatus.OK);
                 }
                 break;
@@ -311,6 +315,8 @@ public class EventoController {
                     throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
                 }else{
                     eventoRepository.deleteById(eventoID);
+                    System.out.println("Cancellato evento id = " + eventoID);
+
                     response = new ResponseEntity<>("Evento con id = " + eventoID + " eliminato", HttpStatus.OK);
                 }
                 break;
@@ -319,6 +325,7 @@ public class EventoController {
                 throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
             }
         }
+        System.out.println("Cancella evento response = " + response.toString());
         return response;
     }
 

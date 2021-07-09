@@ -55,7 +55,7 @@ public class Evento {
     private String note;
 
     //@Column(name="tipo_evento")
-    @ManyToOne(cascade = {CascadeType.ALL})
+    @ManyToOne()
     private TipoEvento tipoEvento;
 
     @Column(name="data")
