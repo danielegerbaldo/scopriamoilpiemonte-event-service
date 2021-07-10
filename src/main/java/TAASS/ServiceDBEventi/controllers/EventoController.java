@@ -3,9 +3,11 @@ package TAASS.ServiceDBEventi.controllers;
 import TAASS.ServiceDBEventi.classiComode.IscriviEvento;
 import TAASS.ServiceDBEventi.exception.MyCustomException;
 import TAASS.ServiceDBEventi.models.Evento;
+import TAASS.ServiceDBEventi.models.TipoEvento;
 import TAASS.ServiceDBEventi.rabbitMQ.ListenerService;
 import TAASS.ServiceDBEventi.rabbitMQ.PublishService;
 import TAASS.ServiceDBEventi.repositories.EventoRepository;
+import TAASS.ServiceDBEventi.repositories.TipoEventoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,8 @@ public class EventoController {
 
     @Autowired
     private EventoRepository eventoRepository;
+    @Autowired
+    private TipoEventoRepository tipoEventoRepository;
     @Autowired
     private ListenerService listenerService;
     @Autowired
@@ -307,7 +311,7 @@ public class EventoController {
                 throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
             }
             case "ROLE_MAYOR":{
-                long idComuneDipendente = Long.parseLong(requestHeader.getHeader("X-auth-user-comune-dipendente-id"));
+
                 if(idComuneDipendente != evento.getComune()){
                     throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
                 }else{
@@ -358,6 +362,26 @@ public class EventoController {
                 evento.getPrezzo(), evento.getLatitudine(), evento.getLongitudine()));
         return nuovoEvento;
     }
+
+    @PostMapping("/addTipoEvento")
+    public ResponseEntity<TipoEvento> addTipoEvento(@RequestBody TipoEvento tipoEvento, HttpServletRequest requestHeader){
+        //AUTH: admin e sindaci
+        if(requestHeader.getHeader("x-auth-user-role").equals("ROLE_CLIENT")){
+            throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
+        }
+
+        if(tipoEventoRepository.findByNome(tipoEvento.getNome()).isPresent()){
+            throw new MyCustomException("TIPOEVENTO ALREADY EXIST", HttpStatus.BAD_REQUEST);
+        }
+
+        TipoEvento newTipo = new TipoEvento(tipoEvento.getNome(),tipoEvento.getDescrizione());
+        tipoEventoRepository.save(newTipo);
+
+        System.out.println("#\taddTipoEvento: tipo evento added: " + newTipo.getId() + " = " + newTipo.getNome());
+
+        return new ResponseEntity<>(newTipo,HttpStatus.OK);
+    }
+
 
     @PostMapping("/iscrivi")
     public ResponseEntity<Evento> iscrivi(@RequestBody IscriviEvento iscriviEvento){
