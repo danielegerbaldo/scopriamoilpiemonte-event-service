@@ -18,8 +18,10 @@ public class TipoEventoController {
 
     @GetMapping
     public List<TipoEvento> getAllTipi(){
+        System.out.println("/api/v1/tipo-evento");
         List<TipoEvento> tipi = new ArrayList<>();
-        tipoEventoRepository.findAll().forEach(tipi::add);
+        tipi = tipoEventoRepository.findAll();
+        System.out.println("Lista tipi evento: " + tipi.size());
         return tipi;
     }
 
