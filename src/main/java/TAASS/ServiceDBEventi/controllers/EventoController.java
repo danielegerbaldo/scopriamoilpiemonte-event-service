@@ -356,9 +356,17 @@ public class EventoController {
         System.out.println("#\taddEvento: aggiungo evento: " + evento);
         System.out.println("#\taddEvento: tipo evento: " + evento.getTipoEvento().getId() + " = " + evento.getTipoEvento().getNome());
         System.out.println("#\taddEvento: data: " + evento.getData());
+
+
+        if(!tipoEventoRepository.findById(evento.getTipoEvento().getId()).isPresent()){
+            throw new MyCustomException("TIPOEVENTO NOT FOUND", HttpStatus.BAD_REQUEST);
+        }
+
+        TipoEvento tipoEvento = tipoEventoRepository.findById(evento.getTipoEvento().getId()).get();
+
         Evento nuovoEvento = eventoRepository.save(new Evento(evento.getNome(), evento.getNumMaxPartecipanti(),
                 evento.getPartecipanti(), evento.isStreaming(), evento.getDescrizione(), evento.getNote(),
-                evento.getTipoEvento(), evento.getData(), evento.getProprietario(), evento.getComune(), evento.getIndirizzo(),
+                tipoEvento, evento.getData(), evento.getProprietario(), evento.getComune(), evento.getIndirizzo(),
                 evento.getPrezzo(), evento.getLatitudine(), evento.getLongitudine()));
         return nuovoEvento;
     }
