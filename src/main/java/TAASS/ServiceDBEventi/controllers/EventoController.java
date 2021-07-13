@@ -252,7 +252,7 @@ public class EventoController {
         Evento evento = eventoRepository.findById(idEvento).get();
 
         //Auth: utente con id = utenteID
-        if((Integer.parseInt(requestHeader.getHeader("x-auth-user-id")) != idUtente || !requestHeader.getHeader("x-auth-user-role").equals("ROLE_ADMIN"))){
+        if((Integer.parseInt(requestHeader.getHeader("x-auth-user-id")) != idUtente && !requestHeader.getHeader("x-auth-user-role").equals("ROLE_ADMIN"))){
             throw new MyCustomException("FORBIDDEN", HttpStatus.FORBIDDEN);
         }
 
